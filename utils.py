@@ -1,5 +1,49 @@
 import numpy as np
-from scipy.spatial import cKDTree
+
+
+import pickle
+
+from scipy import sparse
+
+from sklearn.neighbors import kneighbors_graph
+
+from sklearn.datasets import fetch_openml
+
+from sklearn.metrics import f1_score, accuracy_score, roc_auc_score
+from sklearn.preprocessing import LabelBinarizer
+
+def compute_multiclass_metrics(y_true, y_pred, average='micro'):
+    """
+    Computes F1 score, AUC score, and accuracy for multiclass classification.
+
+    Returns:
+    - A dictionary with F1 score, AUC score, and accuracy
+    """
+    # Calculating F1 score
+
+    f1 = f1_score(y_true, y_pred, average=average)
+
+    # Calculating accuracy
+    acc = accuracy_score(y_true, y_pred)
+
+    # Calculating AUC for multiclass by treating it as a One-vs-Rest problem
+    lb = LabelBinarizer()
+    lb.fit(y_true)
+    y_true_binarized = lb.transform(y_true)
+    y_pred_binarized = lb.transform(y_pred)
+
+    # Handling cases where a class label was never predicted or does not exist in y_true
+    if y_true_binarized.shape[1] == 1:
+        auc = 0.5  # Default to 0.5 (no discrimination) for a single class
+    else:
+        auc = roc_auc_score(y_true_binarized, y_pred_binarized, average=average, multi_class='ovr')
+
+    return {
+        'F1 Score': f1,
+        'AUC Score': auc,
+        'Accuracy': acc
+    }
+
 
 def mutual_knn_graph(X,k):
 
@@ -19,38 +63,34 @@ def mutual_knn_graph(X,k):
 
     return mutual_A
 
-
-# def knn_graph(X, k):
-
-#     n,d = X.shape
-
-#     A = np.zeros((n,n), dtype=np.bool_)
-     
-#     squared_distances = np.sum((np.expand_dims(X, axis =1) - np.expand_dims(X, axis = 0))**2, axis = -1)
-
-#     for i in range(n):
-    
-#         k_neighbors_i = np.argsort(squared_distances[i])[1:k+1]
-#         A[i, k_neighbors_i] = True
-#         A[k_neighbors_i, i] = True
-
- 
-#     return A  
-def knn_graph(X, k):
+def save_knn_graph(X,y, k, save_path):
 
     n, _ = X.shape
-    tree = cKDTree(X)
-    A = np.zeros((n,n), dtype=np.bool_)
 
-    for i in range(n):
-        
-        _, k_neighbors_i = tree.query(X[i], k+1)
-        k_neighbors_i = k_neighbors_i[1:]  # skip the first index since it is the point itself
-        A[i, k_neighbors_i] = True
-        A[k_neighbors_i, i] = True
- 
-    return A  
+    G = kneighbors_graph(X, n_neighbors=k, mode='connectivity')
 
+
+    A = sparse.lil_matrix((n,n), dtype=bool)
+
+    for i,j in zip(*G.nonzero()):
+        A[i,j] = True
+        A[j,i] = True
+    
+    with open(save_path, 'wb') as write_file:
+       
+       pickle.dump((A, y), write_file)
+    
+def fetch_mnist_data():
+
+    mnist = fetch_openml('mnist_784', parser='auto')
+    replace_dict = {chr(i): i-96 for i in range(97, 107)}
+    X = np.array(mnist.data.replace(replace_dict))
+
+    n,_ = X.shape
+    
+    y = np.array(mnist['target'].astype(np.int8))
+
+    return X,y
 
 
 def calcualte_inertia(X,memberships, means, k):
@@ -68,6 +108,4 @@ if __name__ == "__main__":
 
     A = np.random.randn(50,50)
 
-    # knn_graph(X, k =5)
-    breakpoint()
     x_0 = np.random.randn(50)

@@ -4,6 +4,8 @@ from kmeans import kMeans
 
 from math import log, ceil
 
+from scipy import sparse 
+
 class FastSpectralClustering:
     def __init__(self,k, tolerance):
 
@@ -18,10 +20,11 @@ class FastSpectralClustering:
 
     def _count_degree(self, A):
 
-        return np.sum(A, axis = 0) - np.diag(A)
+        D = np.asarray(A.sum(axis = 0) - A.diagonal())
+
+        return D.squeeze(0)
     
     def _power_method(self,M, Y, t):
-
 
         for _ in range(t-1):
             Y = M @ Y
@@ -31,12 +34,12 @@ class FastSpectralClustering:
     def _normalised_laplacian(self,A, D):
 
         n, _ = A.shape
-        breakpoint()
-        D_inv_sqrt = np.sqrt(1/D)
+
+        D_inv_sqrt = sparse.diags(np.sqrt(1/D))
 
 
 
-        N = np.eye(n) - np.diag(D_inv_sqrt) @ A @ np.diag(D_inv_sqrt)
+        N = sparse.eye(n, format='csr') - D_inv_sqrt @ A @ D_inv_sqrt
 
         return N
 
@@ -46,7 +49,7 @@ class FastSpectralClustering:
 
         n,_ = N.shape
 
-        M = np.eye(n) - 0.5 * N
+        M = sparse.eye(n, format='csr') - 0.5 * N
 
         return M
     
@@ -62,7 +65,7 @@ class FastSpectralClustering:
 
         t = ceil(10 * log(n/k))
          
-        Y = self._power_method(self._M, np.random.randn(n,l))
+        Y = self._power_method(self._M, np.random.randn(n,l), t)
 
         return Y
 
@@ -70,8 +73,9 @@ class FastSpectralClustering:
 
         self._Y = self._create_embeddings(A, self.k)
 
-        D_inv_sqrt = np.sqrt(1/self._D)
-        X  = np.diag(D_inv_sqrt) @ self._Y
+        D_inv_sqrt = sparse.diags(np.sqrt(1/self._D))
+
+        X  = D_inv_sqrt @ self._Y
 
         self._model.fit(X)
     

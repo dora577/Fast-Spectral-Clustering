@@ -1,16 +1,19 @@
 
 
-from sklearn.datasets import fetch_openml
-from sklearn.neighbors import kneighbors_graph
 
 import numpy as np
 import pickle
 
 import matplotlib.pyplot as plt
 from fastspectral import FastSpectralClustering
-from utils import knn_graph, mutual_knn_graph
+from utils import save_knn_graph, fetch_mnist_data
+
+from utils import compute_multiclass_metrics
 
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+
+
+import time
 
 def get_predictions(memberships, y, k):
     
@@ -27,48 +30,18 @@ def get_predictions(memberships, y, k):
         y_hat[memberships == i] = mode
     return y_hat
 
-def save_knn_graph_mnist(k=10):
+def run_mnist(load_path):
 
-    mnist = fetch_openml('mnist_784', parser='auto')
-    replace_dict = {chr(i): i-96 for i in range(97, 107)}
-    X = np.array(mnist.data.replace(replace_dict))
-
-    n,_ = X.shape
-    
-    y = np.array(mnist['target'].astype(np.int8))
-    
-    G = kneighbors_graph(X, n_neighbors=k, mode='connectivity')
-
-    A = np.zeros((n,n), dtype=np.bool_)
-
-    for i,j in zip(*G.nonzero()):
-        A[i,j] = True
-        A[j,i] = True
-    
-    with open(f'data/mnist_{k}graph.pickle', 'wb') as write_file:
-
-       np.save(write_file, (A,y), allow_pickle=True)
-
-if __name__ == "__main__":
-
-    np.random.seed(37)
-
-    # save_knn_graph_mnist(k =10)
-
-    data = np.load('data/mnist_10graph.npz', allow_pickle=True)
-
-    A = data['A']
-    y = data['y']
-    data.close()
+    A,y = np.load(load_path, allow_pickle=True)
 
     num_labels = len(np.unique(y))
 
-    breakpoint()
-
     model = FastSpectralClustering(k = num_labels, tolerance=1e-5)
 
-    model.fit(A)
 
+    start = time.time()
+    model.fit(A)
+    end = time.time()
     memberships = model.memberships
 
     y_hat = get_predictions(memberships, y, num_labels)
@@ -80,4 +53,35 @@ if __name__ == "__main__":
     disp.plot()
 
     plt.savefig('output_data/mnist_cm.png')
+
+    metrics = compute_multiclass_metrics(y, y_hat, average='micro')
+
+    return metrics, time
+
+if __name__ == "__main__":
+
+    np.random.seed(37)
+
+    runtimes = []
+
+    # f_1 = []
+    # accuracy  = []
+    # auc = []
+
+    for _ in range(10):
+        runtime, metrics = run_mnist('data/mnist_10_graph.pickle')
+
+        runtimes.append(runtime)
+
+        # f_1.append(metrics['F1 Score'])
+        # accuracy.append(metrics['Accuracy'])
+        # auc.append(metrics['AUC Score'])
+
+    
+    print(f"Average Runtime + std :{np.mean(runtimes)} + {np.std(runtimes)}")
+
+    # print(f"F1 Score", np.mean(f_1))
+    # print(f"Accuracy", np.mean(accuracy))
+    # print(f"AUC Score", np.mean(auc))
+
 

@@ -1,7 +1,6 @@
     
 import numpy as np
 
-
 from utils import calcualte_inertia
 
 class kMeans:
