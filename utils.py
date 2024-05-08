@@ -12,6 +12,29 @@ from sklearn.datasets import fetch_openml
 from sklearn.metrics import f1_score, accuracy_score, roc_auc_score
 from sklearn.preprocessing import LabelBinarizer
 
+from sklearn.metrics import ConfusionMatrixDisplay
+
+import matplotlib.pyplot as plt
+
+
+def plot_confusion_matrix_in_percent(cm, labels):
+    
+    cm_percent = np.round(100 * cm / np.sum(cm, axis= 1),1)
+
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm_percent, display_labels=labels)
+
+    fig, ax = plt.subplots(figsize=(10, 10))
+
+    disp.plot(ax = ax)
+
+    ax.set_xlabel('Predicted Label %')
+    ax.set_ylabel('True Label %')
+
+    # Display the plot
+    plt.show()
+    plt.close()
+
+
 def compute_multiclass_metrics(y_true, y_pred, average='micro'):
     """
     Computes F1 score, AUC score, and accuracy for multiclass classification.
@@ -83,8 +106,7 @@ def save_knn_graph(X,y, k, save_path):
 def fetch_mnist_data():
 
     mnist = fetch_openml('mnist_784', parser='auto')
-    replace_dict = {chr(i): i-96 for i in range(97, 107)}
-    X = np.array(mnist.data.replace(replace_dict))
+    X = np.array(mnist['data'])
 
     n,_ = X.shape
     

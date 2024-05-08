@@ -72,13 +72,9 @@ class kMeans:
 
     def fit(self,X):
 
-        for _ in range(10):
-
-            memberhips, means, SSD = self._train(X)
-
-            if SSD < self._SSD:
+        memberhips, means, SSD = self._train(X)
                 
-                self._memberships, self._centroids, self._inertia = memberhips, means, SSD
+        self._memberships, self._centroids, self._inertia = memberhips, means, SSD
 
     @property
     def memberships(self):
