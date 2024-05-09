@@ -7,8 +7,6 @@ from scipy import sparse
 
 from sklearn.neighbors import kneighbors_graph
 
-from sklearn.datasets import fetch_openml
-
 from sklearn.metrics import f1_score, accuracy_score, roc_auc_score
 from sklearn.preprocessing import LabelBinarizer
 
@@ -36,12 +34,7 @@ def plot_confusion_matrix_in_percent(cm, labels):
 
 
 def compute_multiclass_metrics(y_true, y_pred, average='micro'):
-    """
-    Computes F1 score, AUC score, and accuracy for multiclass classification.
 
-    Returns:
-    - A dictionary with F1 score, AUC score, and accuracy
-    """
     # Calculating F1 score
 
     f1 = f1_score(y_true, y_pred, average=average)
@@ -49,15 +42,13 @@ def compute_multiclass_metrics(y_true, y_pred, average='micro'):
     # Calculating accuracy
     acc = accuracy_score(y_true, y_pred)
 
-    # Calculating AUC for multiclass by treating it as a One-vs-Rest problem
     lb = LabelBinarizer()
     lb.fit(y_true)
     y_true_binarized = lb.transform(y_true)
     y_pred_binarized = lb.transform(y_pred)
 
-    # Handling cases where a class label was never predicted or does not exist in y_true
     if y_true_binarized.shape[1] == 1:
-        auc = 0.5  # Default to 0.5 (no discrimination) for a single class
+        auc = 0.5  
     else:
         auc = roc_auc_score(y_true_binarized, y_pred_binarized, average=average, multi_class='ovr')
 
@@ -66,7 +57,6 @@ def compute_multiclass_metrics(y_true, y_pred, average='micro'):
         'AUC Score': auc,
         'Accuracy': acc
     }
-
 
 def mutual_knn_graph(X,k):
 
@@ -102,18 +92,6 @@ def save_knn_graph(X,y, k, save_path):
     with open(save_path, 'wb') as write_file:
        
        pickle.dump((A, y), write_file)
-    
-def fetch_mnist_data():
-
-    mnist = fetch_openml('mnist_784', parser='auto')
-    X = np.array(mnist['data'])
-
-    n,_ = X.shape
-    
-    y = np.array(mnist['target'].astype(np.int8))
-
-    return X,y
-
 
 def calcualte_inertia(X,memberships, means, k):
 

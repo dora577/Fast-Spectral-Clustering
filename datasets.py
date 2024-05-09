@@ -1,5 +1,19 @@
-from utils import save_knn_graph, fetch_mnist_data
+from utils import save_knn_graph
 
+import numpy as np
+from sklearn.datasets import fetch_openml
+
+
+def fetch_mnist_data():
+
+    mnist = fetch_openml('mnist_784', parser='auto')
+    X = np.array(mnist['data'])
+
+    n,_ = X.shape
+    
+    y = np.array(mnist['target'].astype(np.int8))
+
+    return X,y
 
 
 if __name__ == "__main__":
